@@ -29,8 +29,8 @@
     "point-and-prompt": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
     "test": "node --test --experimental-strip-types src/*.test.ts",
     "start": "node dist/index.js"
   },

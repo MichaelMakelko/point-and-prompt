@@ -1,0 +1,8 @@
+// Build to dist/: same rules as tsconfig.json, without the tests.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false
+  },
+  "exclude": ["src/**/*.test.ts"]
+}

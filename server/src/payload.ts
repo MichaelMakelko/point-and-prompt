@@ -39,10 +39,24 @@ export const LIMITS = {
   elementText: 300,
 } as const;
 
-export class PayloadError extends Error {}
+export const SCREENSHOT_PREFIX = "data:image/png;base64,";
+
+/** A request the server turns down. The message goes back to the extension and is shown in the overlay. */
+export class PayloadError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
 }
 
 function str(value: unknown, field: string, max: number, required: boolean): string | undefined {
@@ -51,8 +65,13 @@ function str(value: unknown, field: string, max: number, required: boolean): str
     return undefined;
   }
   if (typeof value !== "string") throw new PayloadError(`${field} muss Text sein`);
+  // toWellFormed: half a surrogate pair is invalid Unicode. It would end up in the conversation,
+  // where a strict JSON parser further down the line can reject the whole request.
+  if (value.length <= max) return value.toWellFormed();
   // Long page text is cut instead of rejected; the user should not lose a prompt over a big DOM.
-  return value.length > max ? `${value.slice(0, max)} …[gekürzt]` : value;
+  // The cut must not fall between the two halves of a character such as an emoji.
+  const end = isHighSurrogate(value.charCodeAt(max - 1)) ? max - 1 : max;
+  return `${value.slice(0, end).toWellFormed()} …[gekürzt]`;
 }
 
 function num(value: unknown, field: string): number {
@@ -102,7 +121,7 @@ export function parseSelection(body: unknown): Selection {
 
   let screenshot: string | undefined;
   if (body.screenshot !== undefined) {
-    if (typeof body.screenshot !== "string" || !body.screenshot.startsWith("data:image/png;base64,")) {
+    if (typeof body.screenshot !== "string" || !body.screenshot.startsWith(SCREENSHOT_PREFIX)) {
       throw new PayloadError("screenshot muss ein PNG-Data-URL sein");
     }
     screenshot = body.screenshot;

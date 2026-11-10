@@ -1,25 +1,40 @@
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 const FLAGS = ["--dangerously-load-development-channels", "--channels"];
+/** The time limit keeps a hanging WMI service or ps from leaving the server waiting forever with no port and no log line. */
+const EXEC_OPTIONS = { timeout: 10_000, windowsHide: true };
+
+/**
+ * Full path on purpose. For a bare file name Node looks in the current folder first on Windows, and that
+ * folder is the user's project: a powershell.exe lying in a cloned repository would be started instead.
+ */
+function powershellPath(): string {
+  return join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+}
 
 /** Command line of the process that spawned this server (Claude Code). */
 export async function parentCommandLine(pid = process.ppid): Promise<string> {
+  // The id becomes part of a command and of a path below.
+  if (!Number.isInteger(pid) || pid < 0) throw new Error(`Ungültige Prozess-ID: ${pid}`);
+
   if (process.platform === "win32") {
-    const { stdout } = await exec("powershell.exe", [
-      "-NoProfile",
-      "-NonInteractive",
-      "-Command",
-      `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`,
-    ]);
+    // The [wmi] object path is about 130 ms faster here than Get-CimInstance, which loads a module first.
+    const { stdout } = await exec(
+      powershellPath(),
+      ["-NoProfile", "-NonInteractive", "-Command", `([wmi]"Win32_Process.Handle='${pid}'").CommandLine`],
+      EXEC_OPTIONS,
+    );
     return stdout.trim();
   }
   if (process.platform === "linux") {
     return (await readFile(`/proc/${pid}/cmdline`, "utf8")).replace(/\0/g, " ").trim();
   }
-  const { stdout } = await exec("ps", ["-o", "command=", "-p", String(pid)]);
+  // -ww: never cut the command line to a terminal width, the flag may stand at its end.
+  const { stdout } = await exec("ps", ["-ww", "-o", "command=", "-p", String(pid)], EXEC_OPTIONS);
   return stdout.trim();
 }
 
