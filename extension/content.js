@@ -58,9 +58,17 @@
       /* Selection frames */
       .hl { position: fixed; border: 2px dashed var(--violet); background: rgba(139, 92, 246, .08); border-radius: 10px;
             pointer-events: none; display: none; transition: all 60ms ease-out; }
-      .hl.sel { border: 2px solid transparent; background: linear-gradient(rgba(236, 72, 153, .06), rgba(236, 72, 153, .06)) padding-box,
-                var(--grad) border-box; box-shadow: 0 0 0 4px rgba(236, 72, 153, .15), 0 0 24px rgba(167, 139, 250, .45);
+      .hl.sel { border: 2px solid transparent; background: rgba(236, 72, 153, .05);
+                box-shadow: 0 0 0 4px rgba(236, 72, 153, .15), 0 0 24px rgba(167, 139, 250, .45);
                 transition: none; animation: glow 600ms ease-out; }
+      /* Gradient ring only: the mask cuts out the middle, so the page stays visible inside the frame. */
+      .hl.sel::before { content: ""; position: absolute; inset: -2px; padding: 2px; border-radius: inherit; background: var(--grad);
+                        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                        -webkit-mask-composite: xor; mask-composite: exclude; }
+      /* Elements found inside a box selection */
+      .marks { position: fixed; inset: 0; pointer-events: none; }
+      .mark { position: fixed; border: 1.5px solid var(--pink); border-radius: 6px; background: rgba(236, 72, 153, .1);
+              animation: pop 260ms var(--spring); }
       .label { position: absolute; left: -2px; top: -26px; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700;
                padding: 3px 9px; border-radius: 999px; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
       .hl.sel .label { background: var(--grad); }
@@ -156,6 +164,7 @@
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
     </style>
     <div class="hl" id="hover"><span class="label"></span></div>
+    <div class="marks" id="marks"></div>
     <div class="hl sel" id="sel"><span class="label"></span></div>
     <div class="bar" id="bar">
       <div class="avatar" id="avatar" title="point-and-prompt">${PIP}<span class="dot" id="dot"></span></div>
@@ -181,7 +190,7 @@
       <div class="head"><div class="avatar">${PIP}</div><span class="what" id="what"></span></div>
       <textarea id="input" placeholder="Was soll hier passieren?"></textarea>
       <div class="row">
-        <span class="hint"><kbd>Enter</kbd> senden · <kbd>Shift</kbd>+<kbd>Enter</kbd> Zeile · <kbd>Esc</kbd></span>
+        <span class="hint" title="Enter sendet, Shift+Enter macht eine neue Zeile, Esc bricht ab"><kbd>↵</kbd> senden · <kbd>⇧↵</kbd> Zeile</span>
         <button class="mic" id="mic" title="Diktieren (Chrome sendet Sprache zur Erkennung an Google)">🎤</button>
         <button class="cancel" id="cancel">Abbrechen</button>
         <button class="send" id="send">Senden ✦</button>
@@ -191,7 +200,7 @@
   `;
   const $ = (id) => root.getElementById(id);
   const ui = {
-    hover: $("hover"), sel: $("sel"), bar: $("bar"), dot: $("dot"), status: $("status"),
+    hover: $("hover"), sel: $("sel"), marks: $("marks"), bar: $("bar"), dot: $("dot"), status: $("status"),
     modeEl: $("modeEl"), modeBox: $("modeBox"), close: $("close"),
     pop: $("pop"), input: $("input"), mic: $("mic"), cancel: $("cancel"), send: $("send"), what: $("what"),
     picker: $("picker"), menu: $("menu"), tools: $("tools"), slider: $("slider"), toast: $("toast"), toastText: $("toastText"), badge: $("badge"), avatar: $("avatar"),
@@ -403,12 +412,34 @@
   function openPopover(selection) {
     state.selection = { ...selection, scrollX: window.scrollX, scrollY: window.scrollY, at: Date.now() };
     ui.hover.style.display = "none";
-    const label = selection.mode === "element" ? describe(selection.el) : "Bereich";
+    let label;
+    ui.marks.replaceChildren();
+    ui.marks.style.transform = "";
+    if (selection.mode === "element") {
+      label = describe(selection.el);
+    } else {
+      // Show what the box caught, so the user sees what Claude will get.
+      const found = elementsInBox(selection.rect);
+      const box = selection.rect;
+      for (const { rect } of found) {
+        // Cut each mark to the box, so nothing sticks out of the frame.
+        const x = Math.max(rect.x, box.x);
+        const y = Math.max(rect.y, box.y);
+        const width = Math.min(rect.x + rect.width, box.x + box.width) - x;
+        const height = Math.min(rect.y + rect.height, box.y + box.height) - y;
+        const mark = document.createElement("div");
+        mark.className = "mark";
+        mark.style.cssText = `left:${x}px;top:${y}px;width:${width}px;height:${height}px`;
+        ui.marks.append(mark);
+      }
+      label = found.length === 1 ? "Bereich · 1 Element" : `Bereich · ${found.length} Elemente`;
+    }
+    state.selection.label = label;
     placeBox(ui.sel, selection.rect, label);
     ui.sel.style.animation = "none";
     void ui.sel.offsetWidth;
     ui.sel.style.animation = "";
-    ui.what.textContent = selection.mode === "element" ? `Element · ${label}` : "Markierter Bereich";
+    ui.what.textContent = selection.mode === "element" ? `Element · ${label}` : label;
 
     const popW = 380;
     const popH = 180;
@@ -429,7 +460,10 @@
     stopDictation();
     state.selection = null;
     ui.pop.classList.remove("show");
+    // Give the focus back to the page, otherwise the E and B keys still count as typed into the overlay.
+    ui.input.blur();
     ui.sel.style.display = "none";
+    ui.marks.replaceChildren();
   }
 
   function boxRect(a, b) {
@@ -459,7 +493,7 @@
       const text = isMedia
         ? node.getAttribute("alt") || node.getAttribute("aria-label") || node.getAttribute("placeholder") || ""
         : cleanText(node.innerText);
-      found.push({ selector: selectorFor(node), text: clip(text, LIMITS.elementText) });
+      found.push({ selector: selectorFor(node), text: clip(text, LIMITS.elementText), rect: { x: r.left, y: r.top, width: r.width, height: r.height } });
     }
     return found;
   }
@@ -483,7 +517,7 @@
         html: clip(el.outerHTML, LIMITS.html),
       };
     }
-    const elements = elementsInBox(sel.rect);
+    const elements = elementsInBox(sel.rect).map(({ selector, text }) => ({ selector, text }));
     const text = [...new Set(elements.map((e) => e.text).filter(Boolean))].join("\n");
     return { ...base, rect: sel.rect, text: clip(text, LIMITS.text), elements };
   }
@@ -665,7 +699,15 @@
     "scroll",
     () => {
       if (state.active && !state.selection) ui.hover.style.display = "none";
-      if (state.selection?.el) placeBox(ui.sel, rectOf(state.selection.el), describe(state.selection.el));
+      const sel = state.selection;
+      if (sel?.el) placeBox(ui.sel, rectOf(sel.el), describe(sel.el));
+      if (sel?.mode === "box") {
+        // The box belongs to the page content, so frame and marks move with it.
+        const dx = sel.scrollX - window.scrollX;
+        const dy = sel.scrollY - window.scrollY;
+        ui.marks.style.transform = `translate(${dx}px, ${dy}px)`;
+        placeBox(ui.sel, { ...sel.rect, x: sel.rect.x + dx, y: sel.rect.y + dy }, sel.label);
+      }
     },
     true,
   );

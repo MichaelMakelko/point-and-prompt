@@ -14,6 +14,10 @@ a cropped screenshot and your request straight into your running [Claude Code](h
 ![Node.js 20+](https://img.shields.io/badge/node-20%2B-ec4899)
 ![Chrome MV3](https://img.shields.io/badge/chrome-MV3-a78bfa)
 
+<br>
+
+<img src="docs/demo.gif" alt="Demo: pick a Claude Code session, drag a box over three pricing cards, type a request and send it" width="820">
+
 </div>
 
 ## ✨ What you get
