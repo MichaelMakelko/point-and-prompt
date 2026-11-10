@@ -24,4 +24,5 @@ point-and-prompt forwards text to a coding agent that can edit files and run com
 Out of scope:
 
 - Another program running under your own user account talking to the server. It can already act as you.
+- The page you use the overlay on can see the keys you type into it and can insert visible text into the focused field, because the overlay lives in that page. Swapping the text at the moment of sending is blocked.
 - Page content that tries to instruct Claude from inside the fenced block. It is marked as data and Claude is told not to follow it, but no prompt-injection defense is complete. Use the overlay only on pages you trust.

@@ -28,7 +28,8 @@ Load `extension/` as an unpacked extension on `chrome://extensions`. After chang
 | Path | What it is |
 |---|---|
 | `extension/content.js` | Overlay on the page: element picker, box selection, popover, dictation |
-| `extension/background.js` | Service worker: screenshot, session discovery, sending to the server |
+| `extension/background.js` | Service worker: screenshot, session discovery, sending to the server, dictation window |
+| `extension/dictate.html`, `dictate.js` | Dictation window for pages that forbid the microphone |
 | `server/src/http.ts` | Local HTTP endpoint with the origin check |
 | `server/src/payload.ts` | Validation of what the extension sends |
 | `server/src/format.ts` | The message Claude reads, and the channel instructions |

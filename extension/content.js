@@ -12,7 +12,7 @@
     hoverEl: null,
     selection: null, // { mode, el?, rect, scrollX, scrollY }
     drag: null, // { startX, startY }
-    recognition: null,
+    recognition: null, // SpeechRecognition running in the page, or "window" while the dictation window listens
     sessions: [], // [{ port, cwd, project }]
     target: null, // the session this page sends to
   };
@@ -406,6 +406,10 @@
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === "pnp:toggle") state.active ? deactivate() : activate();
+    // Results from the dictation window (see startDictation).
+    if (state.recognition !== "window") return;
+    if (message?.type === "pnp:dictate:result") showDictated(String(message.text ?? ""));
+    if (message?.type === "pnp:dictate:end") dictationEnded(message.error);
   });
 
   // ---------- selection ----------
@@ -525,6 +529,13 @@
   const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   async function submit() {
+    // The page can still put text into the focused field (document.execCommand reaches it), for example
+    // at the very moment the user presses Enter. What is sent must be what stood there when the user began to send.
+    if (ui.input.value !== gestureValue) {
+      ui.input.value = gestureValue ?? "";
+      toast("Die Seite hat den Text verändert. Bitte prüfen und erneut senden.", "err");
+      return;
+    }
     const prompt = ui.input.value.trim();
     if (!prompt || !state.selection) {
       ui.input.focus();
@@ -570,25 +581,62 @@
   // ---------- dictation (Web Speech API) ----------
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) ui.mic.style.display = "none";
+  const DICTATION_ERRORS = {
+    "not-allowed": "Mikrofon ist nicht erlaubt",
+    "service-not-allowed": "Mikrofon ist nicht erlaubt",
+    "audio-capture": "Kein Mikrofon gefunden",
+    "no-speech": "Nichts gehört",
+    network: "Spracherkennung nicht erreichbar",
+  };
+  // Text that stood in the field before dictation started; recognized speech is put behind it.
+  let dictationPrefix = "";
+
+  function showDictated(text) {
+    ui.input.value = dictationPrefix + text;
+    gestureValue = ui.input.value;
+  }
+
+  function dictationEnded(error) {
+    state.recognition = null;
+    ui.mic.classList.remove("rec");
+    if (error && error !== "aborted") toast(`Diktat: ${DICTATION_ERRORS[error] ?? error}`, "err");
+  }
 
   function startDictation() {
+    dictationPrefix = ui.input.value ? `${ui.input.value.trimEnd()} ` : "";
+    const lang = navigator.language?.startsWith("de") ? "de-DE" : navigator.language || "de-DE";
+
+    // A page can forbid the microphone for everything running inside it (Permissions-Policy: microphone=()),
+    // and that includes this script. Recognition then runs in a small window of the extension instead.
+    const pageAllowsMic = document.featurePolicy?.allowsFeature("microphone") ?? true;
+    if (!pageAllowsMic) {
+      state.recognition = "window";
+      ui.mic.classList.add("rec");
+      chrome.runtime.sendMessage({ type: "pnp:dictate:start", lang }).then(
+        (res) => {
+          if (!res?.ok) dictationEnded(res?.error || "Diktat-Fenster ließ sich nicht öffnen");
+        },
+        (error) => dictationEnded(error.message),
+      );
+      return;
+    }
+
     const rec = new Recognition();
-    rec.lang = navigator.language?.startsWith("de") ? "de-DE" : navigator.language || "de-DE";
+    rec.lang = lang;
     rec.continuous = true;
     rec.interimResults = true;
-    const prefix = ui.input.value ? `${ui.input.value.trimEnd()} ` : "";
+    let error;
     rec.onresult = (event) => {
       let text = "";
       for (const result of event.results) text += result[0].transcript;
-      ui.input.value = prefix + text;
+      showDictated(text);
     };
     rec.onerror = (event) => {
-      if (event.error !== "aborted") toast(`Diktat-Fehler: ${event.error}`, "err");
-      stopDictation();
+      error = event.error;
     };
     rec.onend = () => {
-      state.recognition = null;
-      ui.mic.classList.remove("rec");
+      // After a manual stop another dictation may already run; only the current one may reset the state.
+      if (state.recognition === rec) dictationEnded(error);
     };
     rec.start();
     state.recognition = rec;
@@ -596,10 +644,25 @@
   }
 
   function stopDictation() {
-    if (state.recognition) state.recognition.stop();
-    state.recognition = null;
-    ui.mic.classList.remove("rec");
+    const rec = state.recognition;
+    if (!rec) return;
+    dictationEnded();
+    if (rec === "window") {
+      chrome.runtime.sendMessage({ type: "pnp:dictate:stop" }).catch((error) => toast(`Diktat: ${error.message}`, "err"));
+    } else {
+      rec.stop();
+    }
   }
+
+  // ---------- tamper guard ----------
+  // This script runs at document_start, so these listeners are the first on window and run before any
+  // listener of the page. They note the text at the start of a key press or click, before the page can react to it.
+  let gestureValue = null;
+  const noteValue = (event) => {
+    if (event.isTrusted) gestureValue = ui.input.value;
+  };
+  window.addEventListener("keydown", noteValue, true);
+  window.addEventListener("pointerdown", noteValue, true);
 
   // ---------- UI events ----------
   ui.modeEl.addEventListener("click", () => setMode("element"));
@@ -624,12 +687,13 @@
   });
 
   // ---------- page events (capture phase, so the page does not react while picking) ----------
+  // Only real user input counts (isTrusted): the page must not pick elements or close the overlay by script.
   const blocking = () => state.active && !state.selection;
 
   document.addEventListener(
     "mousemove",
     (event) => {
-      if (!blocking() || isOurs(event)) return;
+      if (!event.isTrusted || !blocking() || isOurs(event)) return;
       if (state.mode === "box") {
         if (state.drag) {
           placeBox(ui.hover, boxRect(state.drag, { x: event.clientX, y: event.clientY }), "");
@@ -651,7 +715,7 @@
   document.addEventListener(
     "mousedown",
     (event) => {
-      if (!blocking() || isOurs(event) || event.button !== 0) return;
+      if (!event.isTrusted || !blocking() || isOurs(event) || event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
       if (state.mode === "box") state.drag = { x: event.clientX, y: event.clientY };
@@ -662,7 +726,7 @@
   document.addEventListener(
     "mouseup",
     (event) => {
-      if (!blocking() || isOurs(event) || event.button !== 0) return;
+      if (!event.isTrusted || !blocking() || isOurs(event) || event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
       if (state.mode !== "box" || !state.drag) return;
@@ -678,7 +742,7 @@
   document.addEventListener(
     "click",
     (event) => {
-      if (!state.active || isOurs(event)) return;
+      if (!event.isTrusted || !state.active || isOurs(event)) return;
       // The click that ends a box drag must not reach the page (it could follow a link).
       if (state.selection && Date.now() - state.selection.at < 400) {
         event.preventDefault();
@@ -715,7 +779,7 @@
   document.addEventListener(
     "keydown",
     (event) => {
-      if (!state.active || isOurs(event)) return;
+      if (!event.isTrusted || !state.active || isOurs(event)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (ui.menu.classList.contains("show")) closeMenu();

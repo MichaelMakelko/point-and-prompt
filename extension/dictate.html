@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>point-and-prompt · Diktat</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 16px; font-family: "Segoe UI", system-ui, sans-serif; color: #1e1b4b;
+             background: linear-gradient(#fff, #f5f3ff); min-height: 100vh; display: flex; flex-direction: column; gap: 12px; }
+      header { display: flex; align-items: center; gap: 10px; }
+      header img { width: 32px; height: 32px; }
+      #status { font-weight: 800; font-size: 14px; color: #6d28d9; display: flex; align-items: center; gap: 8px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: pulse 1.2s ease-in-out infinite; }
+      .dot.off { background: #a8a29e; animation: none; }
+      #text { flex: 1; font-size: 14px; line-height: 1.45; padding: 10px 12px; border: 1.5px solid #ddd6fe; border-radius: 12px;
+              background: #fff; overflow: auto; white-space: pre-wrap; }
+      #text:empty::before { content: "Sprich jetzt. Der Text erscheint hier und im Eingabefeld der Seite."; color: #a78bfa; }
+      footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      footer small { font-size: 11px; color: #7c3aed; }
+      button { border: 0; cursor: pointer; font: 800 13px inherit; padding: 8px 16px; border-radius: 999px; color: #fff;
+               background: linear-gradient(135deg, #a78bfa, #ec4899); }
+      button[hidden] { display: none; }
+      @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, .2); } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon-48.png" alt="" />
+      <div id="status"><span class="dot" id="dot"></span><span id="statusText">Ich höre zu …</span></div>
+    </header>
+    <div id="text"></div>
+    <footer>
+      <small>Chrome sendet die Sprache zur Erkennung an Google.</small>
+      <span>
+        <button id="retry" hidden>Nochmal versuchen</button>
+        <button id="done">Fertig</button>
+      </span>
+    </footer>
+    <script src="dictate.js"></script>
+  </body>
+</html>

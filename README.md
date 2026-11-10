@@ -27,6 +27,7 @@ a cropped screenshot and your request straight into your running [Claude Code](h
 | 🎯 **Element mode** | Hover, click, done. |
 | ⬚ **Box mode** | Drag a rectangle over any area. |
 | 💬 **Prompt in place** | Type or dictate next to the selection, `Enter` sends. |
+| 🎤 **Voice input** | Works even on pages that block the microphone, through a small dictation window. |
 | 📸 **Full context** | Request, URL, CSS selector, visible text, HTML and a screenshot. |
 | 🗂️ **Many projects** | Each page remembers which Claude Code session it sends to. |
 | 🔒 **Local only** | Everything stays on `127.0.0.1`. |
@@ -81,7 +82,7 @@ alias claudep='claude --dangerously-load-development-channels server:point-and-p
 ## 🔒 Security
 
 - The server listens on `127.0.0.1` only and accepts requests only from this extension. Websites cannot send prompts.
-- Scripts on the page cannot fill in or submit the overlay.
+- Only real user input can pick an element or send. If a script on the page changes your text at the moment you send, the request is blocked.
 - Page content reaches Claude fenced as data, with a random ID per message.
 - Still: use the overlay only on pages you trust. Screenshots stay in `<tmp>/point-and-prompt/`. Dictation sends audio to Google (Chrome Web Speech API).
 
@@ -94,6 +95,7 @@ Report vulnerabilities privately, see [SECURITY.md](SECURITY.md).
 
 - **Red dot, "keine Session":** Claude Code was started without the channel flag. If you use a wrapper script, set `PNP_SKIP_FLAG_CHECK=1`.
 - **"!" on the extension icon:** the overlay runs only on `http://localhost` and `http://127.0.0.1`. Reload pages that were open before installing.
+- **Dictation opens a small window:** your page forbids the microphone (`Permissions-Policy: microphone=()`), so recognition runs in an extension window instead. Allow the microphone there once.
 - **Sent "ohne Screenshot":** Chrome refused the capture. Claude still gets selector, text and HTML.
 
 </details>

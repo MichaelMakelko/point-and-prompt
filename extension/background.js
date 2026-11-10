@@ -97,6 +97,8 @@ async function send(payload, target, sender) {
   let screenshot;
   let screenshotError;
   try {
+    // captureVisibleTab takes whatever tab is in front, so the sending tab must be that tab.
+    if (!sender.tab?.active) throw new Error("Tab ist nicht im Vordergrund");
     screenshot = await captureCrop(sender.tab.windowId, payload.rect, payload.dpr);
   } catch (error) {
     screenshotError = error instanceof Error ? error.message : String(error);
@@ -121,7 +123,52 @@ async function send(payload, target, sender) {
   return { ok: true, project, warning: screenshotError ? `Ohne Screenshot gesendet: ${screenshotError}` : undefined };
 }
 
+// ---------- dictation window ----------
+// Used when the page forbids the microphone: an extension window is not bound by the page's Permissions-Policy.
+const DICTATE_KEY = "pnp:dictate";
+
+async function stopDictation() {
+  const { [DICTATE_KEY]: current } = await chrome.storage.session.get(DICTATE_KEY);
+  if (!current) return;
+  await chrome.storage.session.remove(DICTATE_KEY);
+  try {
+    await chrome.windows.remove(current.windowId);
+  } catch {
+    // The user already closed the window.
+  }
+}
+
+async function startDictation(lang, tab) {
+  if (!tab?.id) return { ok: false, error: "Kein Tab für das Diktat" };
+  await stopDictation();
+  const url = chrome.runtime.getURL(`dictate.html?tab=${tab.id}&lang=${encodeURIComponent(String(lang))}`);
+  const win = await chrome.windows.create({ url, type: "popup", width: 400, height: 280, focused: true });
+  await chrome.storage.session.set({ [DICTATE_KEY]: { windowId: win.id, tabId: tab.id } });
+  return { ok: true };
+}
+
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  const { [DICTATE_KEY]: current } = await chrome.storage.session.get(DICTATE_KEY);
+  if (current?.windowId !== windowId) return;
+  await chrome.storage.session.remove(DICTATE_KEY);
+  try {
+    await chrome.tabs.sendMessage(current.tabId, { type: "pnp:dictate:end" });
+  } catch {
+    // The page that asked for dictation is gone, nobody is left to tell.
+  }
+});
+
+const asError = (error) => ({ ok: false, error: error instanceof Error ? error.message : String(error) });
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "pnp:dictate:start") {
+    startDictation(message.lang, sender.tab).then(sendResponse, (error) => sendResponse(asError(error)));
+    return true;
+  }
+  if (message?.type === "pnp:dictate:stop") {
+    stopDictation().then(() => sendResponse({ ok: true }), (error) => sendResponse(asError(error)));
+    return true;
+  }
   if (message?.type === "pnp:sessions") {
     sessions().then(sendResponse);
     return true;
