@@ -33,11 +33,17 @@
           <stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#ec4899"/>
         </linearGradient>
       </defs>
-      <path d="M100 52l14-14" stroke="#ec4899" stroke-width="10" stroke-linecap="round"/>
-      <path d="M64 14c-25 0-42 18-42 42v40c0 6 6 9 10 5l8-7 8 8c3 3 7 3 10 0l6-6 6 6c3 3 7 3 10 0l8-8 8 7c4 4 10 1 10-5V56c0-24-17-42-42-42z" fill="url(#pnp-body)"/>
-      <ellipse cx="50" cy="56" rx="8" ry="10" fill="#fff"/><ellipse cx="78" cy="56" rx="8" ry="10" fill="#fff"/>
-      <circle class="eye" cx="52" cy="58" r="4.5" fill="#1e1b4b"/><circle class="eye" cx="80" cy="58" r="4.5" fill="#1e1b4b"/>
-      <path d="M56 74q8 7 16 0" stroke="#1e1b4b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M64 0v36" stroke="#c4b5fd" stroke-width="4" stroke-linecap="round"/>
+      <g fill="none" stroke="#8b5cf6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M42 56L24 38l-14 6"/><path d="M36 68L16 60 5 72"/><path d="M36 80l-18 4-8 16"/><path d="M44 92l-12 12-2 16"/>
+        <path d="M86 56l16-18 8-14"/><path d="M92 68l20-8 11 12"/><path d="M92 80l14 4"/><path d="M84 92l8 8"/>
+      </g>
+      <circle cx="64" cy="70" r="34" fill="url(#pnp-body)"/>
+      <ellipse cx="51" cy="66" rx="10.5" ry="12.5" fill="#fff"/><ellipse cx="77" cy="66" rx="10.5" ry="12.5" fill="#fff"/>
+      <circle class="eye" cx="53" cy="68" r="6.5" fill="#1e1b4b"/><circle class="eye" cx="79" cy="68" r="6.5" fill="#1e1b4b"/>
+      <circle cx="55.5" cy="65" r="2.4" fill="#fff"/><circle cx="81.5" cy="65" r="2.4" fill="#fff"/>
+      <path d="M56 85q8 7 16 0" stroke="#1e1b4b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M94 92l28 11-12 5-5 12z" fill="#fff" stroke="#1e1b4b" stroke-width="4" stroke-linejoin="round"/>
       <path class="twinkle" d="M116 6l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="#fbbf24"/>
     </svg>`;
 
