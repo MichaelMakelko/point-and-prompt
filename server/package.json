@@ -1,0 +1,26 @@
+{
+  "name": "point-and-prompt-server",
+  "version": "0.1.0",
+  "description": "Claude Code channel that receives element picks and box selections from the point-and-prompt Chrome extension",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "point-and-prompt": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/*.test.ts",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

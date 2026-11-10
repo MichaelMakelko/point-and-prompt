@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "point-and-prompt",
+  "version": "0.1.0",
+  "description": "Pick an element or draw a box on your local dev page and send it with a prompt to your running Claude Code session.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApUQtdLjnFoBrL/AKgj+sWRNsjaeDZHthZJ5shN0GyskL4b2BWmto0V3/ADxRXBJRhmK+DHMDbWpwUIzEVzlBqjjY+JvJw7MUjHMMzspHU8ibFuoB3AaKz3Ppjc+4fCKDb2g4bQo+Xh2aYNkKZLPdvloNBXhN+vRG1iXGPUFu/Dd1/TC4bUGXrJi/8pzkNbZaAFN3QySroaol9STLK93mX1NX3nS1LELeiAh2HFO21rccSqkliC5gH1RxTLnXIqnqTOHwZefzHFm8Tc9SUUgwIFZZ2mU6LZGpJ/u3/oKW7LcbUhX6hYaOFvAXr6G8Rf8osmc9Hvvyly8DNiFq89hTJwIDAQAB",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "point-and-prompt ein/aus (Alt+Shift+P)",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "commands": {
+    "toggle-overlay": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "Overlay ein- oder ausschalten"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+    <radialGradient id="shine" cx=".35" cy=".3" r=".5">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Spark ghost "Pip": round head, wavy tail, one arm pointing up-right -->
+  <path d="M100 52l14-14" stroke="#ec4899" stroke-width="10" stroke-linecap="round"/>
+  <path d="M64 14c-25 0-42 18-42 42v40c0 6 6 9 10 5l8-7 8 8c3 3 7 3 10 0l6-6 6 6c3 3 7 3 10 0l8-8 8 7c4 4 10 1 10-5V56c0-24-17-42-42-42z" fill="url(#body)"/>
+  <path d="M64 14c-25 0-42 18-42 42v40c0 6 6 9 10 5l8-7 8 8c3 3 7 3 10 0l6-6 6 6c3 3 7 3 10 0l8-8 8 7c4 4 10 1 10-5V56c0-24-17-42-42-42z" fill="url(#shine)"/>
+  <ellipse cx="50" cy="56" rx="8" ry="10" fill="#fff"/>
+  <ellipse cx="78" cy="56" rx="8" ry="10" fill="#fff"/>
+  <circle cx="52" cy="58" r="4.5" fill="#1e1b4b"/>
+  <circle cx="80" cy="58" r="4.5" fill="#1e1b4b"/>
+  <path d="M56 74q8 7 16 0" stroke="#1e1b4b" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M116 6l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="#fbbf24"/>
+</svg>
