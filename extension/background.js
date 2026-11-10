@@ -88,6 +88,12 @@ async function sessions() {
 }
 
 async function send(payload, target, sender) {
+  // The port ends up in a URL, so it must be a number from our range and nothing else.
+  const port = Number(target?.port);
+  if (!Number.isInteger(port) || port < BASE_PORT || port >= BASE_PORT + PORT_RANGE || typeof target.cwd !== "string") {
+    return { ok: false, stale: true, error: "Ungültige Session. Session neu wählen." };
+  }
+
   let screenshot;
   let screenshotError;
   try {
@@ -101,7 +107,7 @@ async function send(payload, target, sender) {
 
   let res;
   try {
-    res = await fetch(`http://127.0.0.1:${target.port}/prompt`, {
+    res = await fetch(`http://127.0.0.1:${port}/prompt`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Pnp-Target": encodeURIComponent(target.cwd) },
       body: JSON.stringify(body),

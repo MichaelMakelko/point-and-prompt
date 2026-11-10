@@ -111,7 +111,8 @@ export function parseSelection(body: unknown): Selection {
   return {
     mode,
     prompt,
-    url,
+    // Normalized form: no raw line breaks or quotes, because the URL is shown outside the fenced page content.
+    url: parsedUrl.href,
     title: str(body.title, "title", LIMITS.title, false) ?? "",
     rect,
     selector: str(body.selector, "selector", LIMITS.selector, false),

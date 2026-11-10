@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { randomBytes } from "node:crypto";
 import type { Server } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -65,9 +66,10 @@ if (await channelEnabled()) {
   const server = createHttpServer({
     extensionId,
     onSelection: async (selection, imagePath) => {
-      const meta: Record<string, string> = { mode: selection.mode, url: selection.url };
+      const boundary = randomBytes(6).toString("hex");
+      const meta: Record<string, string> = { mode: selection.mode, url: selection.url, boundary };
       if (imagePath) meta.image = imagePath;
-      await notify(formatMessage(selection, imagePath), meta);
+      await notify(formatMessage(selection, imagePath, boundary), meta);
       log(`Auswahl (${selection.mode}) von ${selection.url} weitergegeben`);
     },
   });

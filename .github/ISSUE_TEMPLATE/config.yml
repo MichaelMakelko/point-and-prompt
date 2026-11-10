@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/MichaelMakelko/point-and-prompt/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: Claude Code channels documentation
+    url: https://code.claude.com/docs/en/channels-reference
+    about: Questions about channels themselves (flags, availability, org settings).

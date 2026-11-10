@@ -11,6 +11,7 @@ export const DEFAULT_EXTENSION_ID = "moeaooemoikililkakdldlamlgcebpll";
 export const BASE_PORT = 7428;
 export const PORT_RANGE = 20;
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export interface HttpOptions {
   extensionId: string;
@@ -45,10 +46,12 @@ async function readBody(req: IncomingMessage): Promise<string> {
 }
 
 async function saveScreenshot(dataUrl: string, dir: string): Promise<string> {
-  await mkdir(dir, { recursive: true });
+  const data = Buffer.from(dataUrl.slice("data:image/png;base64,".length), "base64");
+  if (!data.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) throw new PayloadError("screenshot ist kein PNG");
+  // Owner-only: the temp folder is shared between users on Linux, and screenshots show the user's page.
+  await mkdir(dir, { recursive: true, mode: 0o700 });
   const path = join(dir, `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}.png`);
-  const base64 = dataUrl.slice("data:image/png;base64,".length);
-  await writeFile(path, Buffer.from(base64, "base64"));
+  await writeFile(path, data, { mode: 0o600 });
   return path;
 }
 

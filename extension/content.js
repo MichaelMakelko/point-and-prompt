@@ -23,7 +23,8 @@
   const host = document.createElement("div");
   host.id = "point-and-prompt-host";
   host.style.cssText = "all: initial; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;";
-  const root = host.attachShadow({ mode: "open" });
+  // Closed, so page scripts cannot reach the textarea and send button through host.shadowRoot and send prompts themselves.
+  const root = host.attachShadow({ mode: "closed" });
   // Mascot "Pip", same drawing as extension/icons/icon.svg (gradient ids prefixed to stay unique).
   const PIP = `
     <svg class="pip" viewBox="0 0 128 128" aria-hidden="true">
@@ -566,12 +567,15 @@
   ui.close.addEventListener("click", deactivate);
   ui.picker.addEventListener("click", () => (ui.menu.classList.contains("show") ? closeMenu() : openMenu()));
   ui.cancel.addEventListener("click", closePopover);
-  ui.send.addEventListener("click", submit);
+  // isTrusted: only real user input may send, never events a page script dispatched.
+  ui.send.addEventListener("click", (event) => {
+    if (event.isTrusted) submit();
+  });
   ui.mic.addEventListener("click", () => (state.recognition ? stopDictation() : startDictation()));
   ui.input.addEventListener("keydown", (event) => {
     event.stopPropagation();
     // Enter sends, Shift+Enter adds a line; isComposing keeps IME input (e.g. accents) from sending early.
-    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.isTrusted) {
       event.preventDefault();
       submit();
     } else if (event.key === "Escape") {

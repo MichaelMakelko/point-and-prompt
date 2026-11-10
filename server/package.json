@@ -3,6 +3,27 @@
   "version": "0.1.0",
   "description": "Claude Code channel that receives element picks and box selections from the point-and-prompt Chrome extension",
   "license": "MIT",
+  "author": "Michael Makelko",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MichaelMakelko/point-and-prompt.git",
+    "directory": "server"
+  },
+  "homepage": "https://github.com/MichaelMakelko/point-and-prompt#readme",
+  "bugs": "https://github.com/MichaelMakelko/point-and-prompt/issues",
+  "keywords": [
+    "claude-code",
+    "claude",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude-code-channels",
+    "chrome-extension",
+    "visual-feedback",
+    "element-picker",
+    "frontend",
+    "developer-tools"
+  ],
   "type": "module",
   "bin": {
     "point-and-prompt": "dist/index.js"
